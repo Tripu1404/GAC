@@ -1,0 +1,51 @@
+name: Build Nukkit Plugin (Java, no Maven)
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Clonar repositorio
+        uses: actions/checkout@v3
+
+      - name: ☕ Instalar Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: 📦 Descargar Nukkit
+        run: |
+          mkdir -p libs
+          curl -L -o libs/nukkit.jar https://ci.opencollab.dev/job/NukkitX/job/Nukkit/job/master/lastSuccessfulBuild/artifact/target/nukkit-1.0-SNAPSHOT.jar
+
+      - name: 🧱 Compilar plugin
+        run: |
+          mkdir -p build
+          javac -cp "libs/nukkit.jar" -d build src/com/tripu1404/antivelocity/AntiVelocityPlugin.java
+
+      - name: 📦 Empaquetar plugin
+        run: |
+          cp plugin.yml build/
+          cd build
+          jar cf AntiVelocityPlugin.jar *
+
+      - name: 📤 Subir artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: AntiVelocityPlugin
+          path: build/AntiVelocityPlugin.jar
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: 🚀 Crear release (opcional)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: build/AntiVelocityPlugin.jar
