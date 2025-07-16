@@ -1,0 +1,43 @@
+name: Build GAC Plugin
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 8
+      uses: actions/setup-java@v4
+      with:
+        java-version: '8'
+        distribution: 'temurin'
+        cache: 'maven'
+
+    - name: Download dependencies
+      run: |
+        mkdir -p lib
+        curl -L -o lib/nukkit.jar https://ci.opencollab.dev/job/NukkitX/job/Nukkit/job/master/lastSuccessfulBuild/artifact/target/nukkit-1.0-SNAPSHOT.jar
+        curl -L -o lib/lombok.jar https://projectlombok.org/downloads/lombok.jar
+
+    - name: Compile plugin
+      run: |
+        mkdir -p out
+        find src -name "*.java" > sources.txt
+        javac -cp "lib/*:." -d out @sources.txt
+
+    - name: Package plugin
+      run: |
+        jar cf GAC.jar -C out .
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: GAC.jar
+        path: GAC.jar
